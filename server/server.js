@@ -308,9 +308,35 @@ let needSetup = false;
                 throw new Error("Snapshot doesn't exist.");
             }
 
+            log.info("e2e", "Restoring SQLite snapshot. Stopping all monitors and maintenances...");
+
+            // Stop all monitors to prevent stale heartbeats during restoration
+            for (let id in server.monitorList) {
+                try {
+                    await server.monitorList[id].stop();
+                } catch (e) {
+                    log.error("e2e", `Failed to stop monitor ${id}: ${e.message}`);
+                }
+            }
+            server.monitorList = {};
+
+            // Stop all maintenances
+            for (let id in server.maintenanceList) {
+                try {
+                    server.maintenanceList[id].stop();
+                } catch (e) {
+                    log.error("e2e", `Failed to stop maintenance ${id}: ${e.message}`);
+                }
+            }
+            server.maintenanceList = {};
+
+            // Clear uptime calculator list
+            const { UptimeCalculator } = require("./uptime-calculator");
+            UptimeCalculator.list = {};
+
             await Database.close();
             try {
-                fs.cpSync(`${Database.sqlitePath}.e2e-snapshot`, Database.sqlitePath);
+                fs.copyFileSync(`${Database.sqlitePath}.e2e-snapshot`, Database.sqlitePath);
             } catch (err) {
                 throw new Error("Unable to copy snapshot file.");
             }

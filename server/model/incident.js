@@ -15,11 +15,20 @@ class Incident extends BeanModel {
     }
 
     /**
-     * Return an object that ready to parse to JSON for public
-     * @returns {object} Object ready to parse
+     * Get all updates for this incident, ordered by created_date ascending
+     * @returns {Promise<Bean[]>} List of incident_update beans
      */
-    toPublicJSON() {
-        return {
+    async getUpdates() {
+        return await R.find("incident_update", " incident_id = ? ORDER BY created_date ASC", [this.id]);
+    }
+
+    /**
+     * Return an object that ready to parse to JSON for public
+     * @param {boolean} includeUpdates Whether to include the updates array
+     * @returns {object|Promise<object>} Object ready to parse
+     */
+    toPublicJSON(includeUpdates = false) {
+        const json = {
             id: this.id,
             style: this.style,
             title: this.title,
@@ -30,6 +39,21 @@ class Incident extends BeanModel {
             lastUpdatedDate: this.last_updated_date,
             status_page_id: this.status_page_id,
         };
+
+        if (includeUpdates && this.updateList) {
+            json.updates = this.updateList.map((u) => u.toPublicJSON());
+        }
+
+        return json;
+    }
+
+    /**
+     * Load updates and return public JSON with updates included
+     * @returns {Promise<object>} Object ready to parse with updates
+     */
+    async toPublicJSONWithUpdates() {
+        this.updateList = await this.getUpdates();
+        return this.toPublicJSON(true);
     }
 }
 

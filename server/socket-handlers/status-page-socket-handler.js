@@ -6,6 +6,7 @@ const ImageDataURI = require("../image-data-uri");
 const Database = require("../database");
 const apicache = require("../modules/apicache");
 const StatusPage = require("../model/status_page");
+const IncidentUpdate = require("../model/incident_update");
 const { UptimeKumaServer } = require("../uptime-kuma-server");
 const { Settings } = require("../settings");
 
@@ -18,9 +19,6 @@ const { Settings } = require("../settings");
 function validateIncident(incident) {
     if (!incident.title || incident.title.trim() === "") {
         throw new Error("Please input title");
-    }
-    if (!incident.content || incident.content.trim() === "") {
-        throw new Error("Please input content");
     }
 }
 
@@ -255,6 +253,253 @@ module.exports.statusPageSocketHandler = (socket) => {
                 msg: "Resolved",
                 msgi18n: true,
                 incident: bean.toPublicJSON(),
+            });
+        } catch (error) {
+            callback({
+                ok: false,
+                msg: error.message,
+                msgi18n: true,
+            });
+        }
+    });
+
+    // ==========================================
+    // Incident Update (Timeline) Socket Handlers
+    // ==========================================
+
+    socket.on("postIncidentUpdate", async (slug, incidentID, update, callback) => {
+        try {
+            checkLogin(socket);
+
+            let statusPageID = await StatusPage.slugToID(slug);
+            if (!statusPageID) {
+                callback({
+                    ok: false,
+                    msg: "slug is not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [incidentID, statusPageID]);
+            if (!incident) {
+                callback({
+                    ok: false,
+                    msg: "Incident not found or access denied",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Validate status
+            if (!IncidentUpdate.isValidStatus(update.status)) {
+                callback({
+                    ok: false,
+                    msg: "Invalid update status",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Validate message
+            if (!update.message || update.message.trim() === "") {
+                callback({
+                    ok: false,
+                    msg: "Please input message",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Create the incident update
+            let bean = R.dispense("incident_update");
+            bean.incident_id = incidentID;
+            bean.status = update.status;
+            bean.message = update.message;
+            bean.created_date = R.isoDateTime(dayjs.utc());
+            await R.store(bean);
+
+            // Update the parent incident's last_updated_date
+            incident.last_updated_date = R.isoDateTime(dayjs.utc());
+            await R.store(incident);
+
+            // If status is "resolved", also resolve the parent incident
+            if (update.status === "resolved") {
+                await incident.resolve();
+            }
+
+            callback({
+                ok: true,
+                msg: "successAdded",
+                msgi18n: true,
+                update: bean.toPublicJSON(),
+                incident: incident.toPublicJSON(),
+            });
+        } catch (error) {
+            callback({
+                ok: false,
+                msg: error.message,
+                msgi18n: true,
+            });
+        }
+    });
+
+    socket.on("getIncidentUpdates", async (slug, incidentID, callback) => {
+        try {
+            let statusPageID = await StatusPage.slugToID(slug);
+            if (!statusPageID) {
+                callback({
+                    ok: false,
+                    msg: "slug is not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [incidentID, statusPageID]);
+            if (!incident) {
+                callback({
+                    ok: false,
+                    msg: "Incident not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            let updates = await incident.getUpdates();
+            callback({
+                ok: true,
+                updates: updates.map((u) => u.toPublicJSON()),
+            });
+        } catch (error) {
+            callback({
+                ok: false,
+                msg: error.message,
+                msgi18n: true,
+            });
+        }
+    });
+
+    socket.on("editIncidentUpdate", async (slug, incidentUpdateID, update, callback) => {
+        try {
+            checkLogin(socket);
+
+            let statusPageID = await StatusPage.slugToID(slug);
+            if (!statusPageID) {
+                callback({
+                    ok: false,
+                    msg: "slug is not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Find the update and verify it belongs to an incident on this status page
+            let bean = await R.findOne("incident_update", " id = ? ", [incidentUpdateID]);
+            if (!bean) {
+                callback({
+                    ok: false,
+                    msg: "Update not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [bean.incident_id, statusPageID]);
+            if (!incident) {
+                callback({
+                    ok: false,
+                    msg: "Incident not found or access denied",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Validate status if provided
+            if (update.status && !IncidentUpdate.isValidStatus(update.status)) {
+                callback({
+                    ok: false,
+                    msg: "Invalid update status",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Validate message if provided
+            if (update.message !== undefined && (!update.message || update.message.trim() === "")) {
+                callback({
+                    ok: false,
+                    msg: "Please input message",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            if (update.status) {
+                bean.status = update.status;
+            }
+            if (update.message) {
+                bean.message = update.message;
+            }
+
+            await R.store(bean);
+
+            callback({
+                ok: true,
+                msg: "Saved.",
+                msgi18n: true,
+                update: bean.toPublicJSON(),
+            });
+        } catch (error) {
+            callback({
+                ok: false,
+                msg: error.message,
+                msgi18n: true,
+            });
+        }
+    });
+
+    socket.on("deleteIncidentUpdate", async (slug, incidentUpdateID, callback) => {
+        try {
+            checkLogin(socket);
+
+            let statusPageID = await StatusPage.slugToID(slug);
+            if (!statusPageID) {
+                callback({
+                    ok: false,
+                    msg: "slug is not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            let bean = await R.findOne("incident_update", " id = ? ", [incidentUpdateID]);
+            if (!bean) {
+                callback({
+                    ok: false,
+                    msg: "Update not found",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            // Verify incident belongs to this status page
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [bean.incident_id, statusPageID]);
+            if (!incident) {
+                callback({
+                    ok: false,
+                    msg: "Incident not found or access denied",
+                    msgi18n: true,
+                });
+                return;
+            }
+
+            await R.trash(bean);
+
+            callback({
+                ok: true,
+                msg: "successDeleted",
+                msgi18n: true,
             });
         } catch (error) {
             callback({

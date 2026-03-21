@@ -22,8 +22,9 @@ test.describe("Incident History", () => {
         await page.getByTestId("save-button").click();
         await expect(page.getByTestId("edit-sidebar")).toHaveCount(0);
 
-        const pastIncidentsSection = page.locator(".past-incidents-section");
-        await expect(pastIncidentsSection).toHaveCount(0);
+        // No incident history link should appear when there are no incidents
+        const historyLink = page.locator("a[href='/status/empty-test/incidents']");
+        await expect(historyLink).toHaveCount(0);
 
         await screenshot(testInfo, page);
     });
@@ -43,7 +44,6 @@ test.describe("Incident History", () => {
 
         await page.getByTestId("create-incident-button").click();
         await page.getByTestId("incident-title").fill("Active Incident");
-        await page.getByTestId("incident-content-editable").fill("This is an active incident");
         await page.getByTestId("post-incident-button").click();
 
         await page.waitForTimeout(500);
@@ -54,8 +54,9 @@ test.describe("Incident History", () => {
         const activeIncident = page.getByTestId("incident").filter({ hasText: "Active Incident" });
         await expect(activeIncident).toBeVisible();
 
-        const pastIncidentsSection = page.locator(".past-incidents-section");
-        await expect(pastIncidentsSection).toHaveCount(0);
+        // Active (pinned) incidents should not cause an incident history link to appear
+        const historyLink = page.locator("a[href='/status/dedup-test/incidents']");
+        await expect(historyLink).toHaveCount(0);
 
         await screenshot(testInfo, page);
     });
@@ -75,7 +76,6 @@ test.describe("Incident History", () => {
 
         await page.getByTestId("create-incident-button").click();
         await page.getByTestId("incident-title").fill("Resolved Incident");
-        await page.getByTestId("incident-content-editable").fill("This incident will be resolved");
         await page.getByTestId("post-incident-button").click();
 
         await page.waitForTimeout(500);
@@ -92,14 +92,19 @@ test.describe("Incident History", () => {
         await page.getByTestId("save-button").click();
         await expect(page.getByTestId("edit-sidebar")).toHaveCount(0);
 
+        // After resolving, an "Incident History" link should appear on the main status page
         await page.goto("./status/resolve-test");
         await page.waitForLoadState("networkidle");
 
-        const pastIncidentsSection = page.locator(".past-incidents-section");
-        await expect(pastIncidentsSection).toBeVisible({ timeout: 15000 });
+        const historyLink = page.locator("a[href='/status/resolve-test/incidents']");
+        await expect(historyLink).toBeVisible({ timeout: 15000 });
 
-        const resolvedIncidentTitle = pastIncidentsSection.locator(".incident-title");
-        await expect(resolvedIncidentTitle).toContainText("Resolved Incident", { timeout: 15000 });
+        // Navigate to the incident history page and verify the resolved incident is listed
+        await historyLink.click();
+        await page.waitForURL("**/status/resolve-test/incidents");
+
+        const incidentTitle = page.locator(".incident-title");
+        await expect(incidentTitle).toContainText("Resolved Incident", { timeout: 15000 });
 
         await screenshot(testInfo, page);
     });
@@ -120,7 +125,6 @@ test.describe("Incident History", () => {
         for (let i = 1; i <= 12; i++) {
             await page.getByTestId("create-incident-button").click();
             await page.getByTestId("incident-title").fill("Incident " + i);
-            await page.getByTestId("incident-content-editable").fill("Content for incident " + i);
             await page.getByTestId("post-incident-button").click();
             await page.waitForTimeout(300);
 
@@ -136,13 +140,21 @@ test.describe("Incident History", () => {
 
         await page.waitForTimeout(1000);
 
-        const pastIncidentsSection = page.locator(".past-incidents-section");
-        await expect(pastIncidentsSection).toBeVisible();
+        // Navigate to the dedicated incident history page
+        const historyLink = page.locator("a[href='/status/pagination-test/incidents']");
+        await expect(historyLink).toBeVisible({ timeout: 15000 });
+        await historyLink.click();
+        await page.waitForURL("**/status/pagination-test/incidents");
 
-        const loadMoreButton = page.locator("button", { hasText: "Load More" });
+        // Check that incident history content is present
+        const incidentItems = page.locator(".incident-item");
+        await expect(incidentItems.first()).toBeVisible({ timeout: 15000 });
 
-        if (await loadMoreButton.isVisible()) {
-            await loadMoreButton.click();
+        // Check for the "Show All" expander button if more than 3 incidents in a month group
+        const showAllButton = page.locator("button", { hasText: "Show All" });
+
+        if (await showAllButton.isVisible()) {
+            await showAllButton.click();
             await page.waitForTimeout(1000);
             await screenshot(testInfo, page);
         }

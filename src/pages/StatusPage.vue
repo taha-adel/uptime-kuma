@@ -272,7 +272,7 @@
             </h1>
 
             <!-- Admin functions -->
-            <div v-if="hasToken" class="mb-2">
+            <div v-if="hasToken && !isIncidentRelatedPage" class="mb-2">
                 <div v-if="!enableEditMode">
                     <button class="btn btn-primary mb-2 me-2" data-testid="edit-button" @click="edit">
                         <font-awesome-icon icon="edit" />
@@ -322,19 +322,10 @@
                 <!-- Display mode for this incident -->
                 <div
                     v-else
-                    class="shadow-box alert mb-4 p-4 incident"
-                    role="alert"
-                    :class="'bg-' + activeIncident.style"
+                    class="shadow-box mb-4 p-4 incident"
                     data-testid="incident"
                 >
-                    <h4 class="alert-heading" data-testid="incident-title">{{ activeIncident.title }}</h4>
-                    <!-- eslint-disable vue/no-v-html -->
-                    <div
-                        class="content"
-                        data-testid="incident-content"
-                        v-html="getIncidentHTML(activeIncident.content)"
-                    ></div>
-                    <!-- eslint-enable vue/no-v-html -->
+                    <h3 class="alert-heading text-center mb-0" :style="{ color: activeIncident.style === 'danger' ? '#e36209' : '#dbab09' }" data-testid="incident-title">{{ activeIncident.title }}</h3>
 
                     <!-- Incident Date -->
                     <div class="date mt-3">
@@ -345,14 +336,28 @@
                             })
                         }}
                         <br />
-                        <span v-if="activeIncident.lastUpdatedDate">
-                            {{
-                                $t("lastUpdatedAtFromNow", {
-                                    date: $root.datetime(activeIncident.lastUpdatedDate),
-                                    fromNow: dateFromNow(activeIncident.lastUpdatedDate),
-                                })
-                            }}
-                        </span>
+                    </div>
+
+                    <!-- Incident Timeline -->
+                    <hr />
+                    <div class="updates-section mt-3">
+                        <h6 class="mb-2">{{ $t("Incident Updates") }}</h6>
+                        <IncidentTimeline
+                            :updates="activeIncident.updates"
+                            :edit-mode="editMode"
+                            @edit-update="editIncidentUpdate"
+                            @delete-update="deleteIncidentUpdate"
+                        />
+                    </div>
+
+                    <!-- Post Update Form (Edit Mode Only) -->
+                    <div v-if="editMode" class="mt-3">
+                        <IncidentUpdateForm
+                            :slug="slug"
+                            :incident-id="activeIncident.id"
+                            :updates="activeIncident.updates"
+                            @update-posted="(update, incident) => onIncidentUpdatePosted(activeIncident, update, incident)"
+                        />
                     </div>
 
                     <div v-if="editMode" class="mt-3">
@@ -376,7 +381,7 @@
             </template>
 
             <!-- Overall Status -->
-            <div class="shadow-box list p-4 overall-status mb-4">
+            <div v-if="!isIncidentRelatedPage" class="shadow-box list p-4 overall-status mb-4">
                 <div v-if="Object.keys($root.publicMonitorList).length === 0 && loadedData">
                     <font-awesome-icon icon="question-circle" class="ok" />
                     {{ $t("No Services") }}
@@ -410,7 +415,7 @@
             </div>
 
             <!-- Maintenance -->
-            <template v-if="maintenanceList.length > 0">
+            <template v-if="!isIncidentRelatedPage && maintenanceList.length > 0">
                 <div
                     v-for="maintenance in maintenanceList"
                     :key="maintenance.id"
@@ -425,9 +430,9 @@
             </template>
 
             <!-- Description -->
-            <strong v-if="editMode">{{ $t("Description") }}:</strong>
+            <strong v-if="!isIncidentRelatedPage && editMode">{{ $t("Description") }}:</strong>
             <Editable
-                v-if="enableEditMode"
+                v-if="!isIncidentRelatedPage && enableEditMode"
                 v-model="config.description"
                 :contenteditable="editMode"
                 tag="div"
@@ -436,14 +441,14 @@
             />
             <!-- eslint-disable vue/no-v-html-->
             <div
-                v-if="!enableEditMode"
+                v-if="!isIncidentRelatedPage && !enableEditMode"
                 class="alert-heading p-2"
                 data-testid="description"
                 v-html="descriptionHTML"
             ></div>
             <!-- eslint-enable vue/no-v-html-->
 
-            <div v-if="editMode" class="mb-4">
+            <div v-if="!isIncidentRelatedPage && editMode" class="mb-4">
                 <div>
                     <button class="btn btn-primary btn-add-group me-2" data-testid="add-group-button" @click="addGroup">
                         <font-awesome-icon icon="plus" />
@@ -482,7 +487,7 @@
                 </div>
             </div>
 
-            <div class="mb-4">
+            <div v-if="!isIncidentRelatedPage" class="mb-4">
                 <div v-if="$root.publicGroupList.length === 0 && loadedData" class="text-center">
                     <!-- 👀 Nothing here, please add a group or a monitor. -->
                     👀 {{ $t("statusPageNothing") }}
@@ -496,22 +501,45 @@
                 />
             </div>
 
-            <!-- Past Incidents -->
-            <div v-if="pastIncidentCount > 0" class="past-incidents-section mb-4">
-                <h2 class="past-incidents-title mb-3">
-                    {{ $t("Past Incidents") }}
-                </h2>
+            <!-- Link to Incident History -->
+            <div v-if="!isIncidentRelatedPage && pastIncidentCount > 0" class="text-center mt-4 mb-5">
+                <router-link :to="`/status/${slug}/incidents`" class="btn btn-outline-primary shadow-sm" style="border-radius: 50px; padding: 10px 30px;">
+                    {{ $t("Incident History") }}
+                </router-link>
+            </div>
 
-                <div class="past-incidents-content">
+            <!-- Dedicated Incident History Page View -->
+            <div v-if="isIncidentHistoryPage" class="incident-history-page mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>{{ $t("Incident History") }}</h2>
+                    <router-link :to="`/status/${slug}`" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        &larr; {{ $t("Current Status") }}
+                    </router-link>
+                </div>
+
+                <div class="past-incidents-content mt-4">
+                    <!-- Pagination Controls -->
+                    <div v-if="historyMonths.length > 3" class="history-pagination d-flex justify-content-start align-items-center mb-4">
+                        <button class="history-nav-btn" :disabled="historyPageOffset >= maxHistoryPageOffset" @click="historyPageOffset++">
+                            <font-awesome-icon icon="angle-left" />
+                        </button>
+                        <span class="history-nav-text">
+                            {{ paginationRangeText }}
+                        </span>
+                        <button class="history-nav-btn" :disabled="historyPageOffset === 0" @click="historyPageOffset--">
+                            <font-awesome-icon icon="angle-right" />
+                        </button>
+                    </div>
+
                     <div
-                        v-for="(dateGroup, dateKey) in groupedIncidentHistory"
-                        :key="dateKey"
-                        class="incident-date-group mb-4"
+                        v-for="group in visibleIncidentHistory"
+                        :key="group.month"
+                        class="incident-date-group mb-5"
                     >
-                        <h4 class="incident-date-header">{{ dateKey }}</h4>
-                        <div class="shadow-box incident-list-box">
+                        <h3 class="incident-date-header border-bottom pb-2 mb-4">{{ group.month }}</h3>
+                        <div class="incident-list-box">
                             <IncidentHistory
-                                :incidents="dateGroup"
+                                :incidents="group.incidents"
                                 :edit-mode="enableEditMode"
                                 :loading="incidentHistoryLoading"
                                 @edit-incident="$refs.incidentManageModal.showEdit($event)"
@@ -520,21 +548,46 @@
                             />
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div v-if="incidentHistoryHasMore" class="load-more-controls d-flex justify-content-center mt-3">
-                        <button
-                            class="btn btn-outline-secondary btn-sm"
-                            :disabled="incidentHistoryLoading"
-                            @click="loadMoreIncidentHistory"
-                        >
-                            <span
-                                v-if="incidentHistoryLoading"
-                                class="spinner-border spinner-border-sm me-1"
-                                role="status"
-                            ></span>
-                            {{ $t("Load More") }}
-                        </button>
+            <!-- Single Incident Detailed View -->
+            <div v-if="isSingleIncidentPage" class="single-incident-page mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>{{ $t("Incident Details") }}</h2>
+                    <router-link :to="`/status/${slug}/incidents`" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        &larr; {{ $t("Back to History") }}
+                    </router-link>
+                </div>
+
+                <div v-if="singleIncident !== null" class="shadow-box mb-4 p-4 incident" data-testid="incident">
+                    <h3 class="alert-heading text-center mb-0" :style="{ color: singleIncident.style === 'danger' ? '#e36209' : '#dbab09', fontWeight: 'bold' }">{{ singleIncident.title }}</h3>
+
+                    <!-- Incident Date -->
+                    <div class="date mt-3 text-center text-muted">
+                        {{
+                            $t("dateCreatedAtFromNow", {
+                                date: $root.datetime(singleIncident.createdDate),
+                                fromNow: dateFromNow(singleIncident.createdDate),
+                            })
+                        }}
                     </div>
+
+                    <!-- Incident Timeline -->
+                    <hr class="my-4" />
+                    <div class="updates-section mt-3">
+                        <h5 class="mb-4">{{ $t("Incident Timeline") }}</h5>
+                        <IncidentTimeline
+                            :updates="singleIncident.updates"
+                            :edit-mode="editMode"
+                            @edit-update="editIncidentUpdate"
+                            @delete-update="deleteIncidentUpdate"
+                        />
+                    </div>
+                </div>
+                <div v-else class="text-center py-5 text-muted shadow-box p-4">
+                    <font-awesome-icon icon="exclamation-circle" class="mb-3" style="font-size: 2rem;" />
+                    <h4>{{ $t("Incident not found.") }}</h4>
                 </div>
             </div>
 
@@ -622,6 +675,8 @@ import MaintenanceTime from "../components/MaintenanceTime.vue";
 import IncidentHistory from "../components/IncidentHistory.vue";
 import IncidentManageModal from "../components/IncidentManageModal.vue";
 import IncidentEditForm from "../components/IncidentEditForm.vue";
+import IncidentTimeline from "../components/IncidentTimeline.vue";
+import IncidentUpdateForm from "../components/IncidentUpdateForm.vue";
 import { getResBaseURL } from "../util-frontend";
 import {
     STATUS_PAGE_ALL_DOWN,
@@ -658,6 +713,8 @@ export default {
         IncidentHistory,
         IncidentManageModal,
         IncidentEditForm,
+        IncidentTimeline,
+        IncidentUpdateForm,
     },
 
     // Leave Page for vue route change
@@ -684,6 +741,7 @@ export default {
 
     data() {
         return {
+            historyPageOffset: 0,
             slug: null,
             enableEditMode: false,
             enableEditIncidentMode: false,
@@ -877,25 +935,90 @@ export default {
             return this.incidentHistory.filter((i) => !(i.active && i.pin)).length;
         },
 
+        isIncidentRelatedPage() {
+            return this.$route.path.includes('/incidents');
+        },
+
+        isIncidentHistoryPage() {
+            return this.$route.path.endsWith('/incidents');
+        },
+
+        isSingleIncidentPage() {
+            return this.$route.path.includes('/incidents/') && this.$route.params.id;
+        },
+
+        singleIncident() {
+            if (!this.isSingleIncidentPage) {
+                return null;
+            }
+            
+            // Active incidents
+            let found = this.activeIncidents.find(i => i.id == this.$route.params.id);
+            if (found) {
+                return found;
+            }
+
+            // Incident history
+            return this.incidentHistory.find(i => i.id == this.$route.params.id);
+        },
+
         /**
          * Group past incidents (non-active or unpinned) by date for display
-         * Active+pinned incidents are shown separately at the top, not in this section
-         * @returns {object} Incidents grouped by date string
+         * @returns {object[]} Array of group objects containing month and incidents
          */
         groupedIncidentHistory() {
-            const groups = {};
+            const groups = [];
             const pastIncidents = this.incidentHistory.filter((i) => !(i.active && i.pin));
             for (const incident of pastIncidents) {
-                const dateKey = this.formatDateKey(incident.createdDate);
-                if (!groups[dateKey]) {
-                    groups[dateKey] = [];
+                const dateKey = new Date(incident.createdDate).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "long",
+                });
+                let group = groups.find(g => g.month === dateKey);
+                if (!group) {
+                    group = { month: dateKey, incidents: [] };
+                    groups.push(group);
                 }
-                groups[dateKey].push(incident);
+                group.incidents.push(incident);
             }
             return groups;
         },
+
+        historyMonths() {
+            return this.groupedIncidentHistory.map(g => g.month);
+        },
+
+        maxHistoryPageOffset() {
+            return Math.max(0, Math.ceil(this.historyMonths.length / 3) - 1);
+        },
+
+        visibleIncidentHistory() {
+            const start = this.historyPageOffset * 3;
+            return this.groupedIncidentHistory.slice(start, start + 3);
+        },
+
+        paginationRangeText() {
+            if (this.visibleIncidentHistory.length === 0) {
+                return "";
+            }
+            const first = this.visibleIncidentHistory[this.visibleIncidentHistory.length - 1].month;
+            const last = this.visibleIncidentHistory[0].month;
+            
+            if (first === last) {
+                return first;
+            }
+            return `${first} to ${last}`;
+        },
     },
     watch: {
+        $route(to, from) {
+            if (to.path !== from.path) {
+                if (to.path.includes("/incidents")) {
+                    this.enableEditMode = false;
+                }
+            }
+        },
+
         /**
          * If connected to the socket and logged in, request private data of this statusPage
          * @param {boolean} loggedIn Is the client logged in?
@@ -1297,8 +1420,8 @@ export default {
          * @returns {void}
          */
         postIncident() {
-            if (this.incident.title === "" || this.incident.content === "") {
-                this.$root.toastError("Please input title and content");
+            if (this.incident.title === "") {
+                this.$root.toastError("Please input title");
                 return;
             }
 
@@ -1488,12 +1611,82 @@ export default {
                 }
             });
         },
+
+        /**
+         * Handle new incident update posted
+         * @param {object} activeIncident - The incident being updated
+         * @param {object} update - The new update object
+         * @param {object} incident - The updated incident object
+         */
+        onIncidentUpdatePosted(activeIncident, update, incident) {
+            if (!activeIncident.updates) {
+                activeIncident.updates = [];
+            }
+            activeIncident.updates.push(update);
+            activeIncident.lastUpdatedDate = incident.lastUpdatedDate;
+
+            // If the update resolved the incident, refresh all data
+            if (update.status === "resolved") {
+                this.getData();
+            }
+        },
+
+        /**
+         * Edit an incident update
+         * @param {object} update - Update to edit
+         */
+        editIncidentUpdate(update) {
+            // Implementation for editing update in a modal or inline
+            // For now, let's keep it simple or implement if needed
+            console.log("Edit update", update);
+        },
+
+        /**
+         * Delete an incident update
+         * @param {object} update - Update to delete
+         */
+        deleteIncidentUpdate(update) {
+            this.$root.getSocket().emit("deleteIncidentUpdate", this.slug, update.id, (res) => {
+                this.$root.toastRes(res);
+                if (res.ok) {
+                    this.getData();
+                }
+            });
+        },
     },
 };
 </script>
 
 <style lang="scss" scoped>
 @import "../assets/vars.scss";
+
+.history-pagination {
+    gap: 1rem;
+    
+    .history-nav-text {
+        color: var(--bs-secondary-color, #6c757d);
+        font-size: 1rem;
+    }
+    
+    .history-nav-btn {
+        background: transparent;
+        border: none;
+        color: var(--bs-secondary-color, #6c757d);
+        cursor: pointer;
+        padding: 5px 10px;
+        transition: opacity 0.2s;
+        
+        &:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        &:not(:disabled):hover {
+            opacity: 0.8;
+            color: var(--bs-body-color);
+        }
+    }
+}
 
 .overall-status {
     font-weight: bold;
