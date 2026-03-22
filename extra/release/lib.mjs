@@ -127,8 +127,11 @@ export async function checkTagExistsSingle(repoName, version) {
     if (response.ok) {
         const data = await response.json();
         tags = data.results.map((tag) => tag.name);
+    } else if (response.status === 404) {
+        console.warn(`Repository ${repoName} not found on Docker Hub (new repo?). Skipping tag check.`);
+        return;
     } else {
-        console.error("Failed to get tags from Docker Hub");
+        console.error(`Failed to get tags from Docker Hub (HTTP ${response.status})`);
         process.exit(1);
     }
 
