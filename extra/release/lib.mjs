@@ -311,14 +311,20 @@ export async function createDistTarGz() {
  * @returns {Promise<void>}
  */
 export async function createReleasePR(version, previousVersion, dryRun, branchName = "release", githubRunId = null) {
-    const prompt = await getPrompt(previousVersion);
+    let prompt;
+    try {
+        prompt = await getPrompt(previousVersion);
+    } catch (e) {
+        console.warn(`Warning: Could not generate changelog (${e.message}). Using placeholder.`);
+        prompt = `Changelog could not be auto-generated. Previous version tag "${previousVersion}" not found in git history.`;
+    }
 
     const title = dryRun ? `chore: update to ${version} (dry run)` : `chore: update to ${version}`;
 
     // Build the artifact link - use direct run link if available, otherwise link to workflow file
     const artifactLink = githubRunId
-        ? `https://github.com/louislam/uptime-kuma/actions/runs/${githubRunId}/workflow`
-        : `https://github.com/louislam/uptime-kuma/actions/workflows/beta-release.yml`;
+        ? `https://github.com/taha-adel/uptime-kuma/actions/runs/${githubRunId}/workflow`
+        : `https://github.com/taha-adel/uptime-kuma/actions/workflows/beta-release.yml`;
 
     const body = `## Release ${version}
 
