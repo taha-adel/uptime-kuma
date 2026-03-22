@@ -19,10 +19,21 @@
             >
                 <div class="incident-body w-100">
                     <div class="d-flex justify-content-between align-items-start">
-                        <router-link :to="`/status/${$route.params.slug}/incidents/${incident.id}`" class="text-decoration-none">
-                            <h4 class="incident-title mb-2 text-start" :style="{ color: incident.style === 'danger' ? '#e36209' : '#dbab09', fontWeight: 'bold' }">{{ incident.title }}</h4>
+                        <router-link
+                            :to="`/status/${$route.params.slug}/incidents/${incident.id}`"
+                            class="text-decoration-none"
+                        >
+                            <h4
+                                class="incident-title mb-2 text-start"
+                                :style="{
+                                    color: incident.style === 'danger' ? '#e36209' : '#dbab09',
+                                    fontWeight: 'bold',
+                                }"
+                            >
+                                {{ incident.title }}
+                            </h4>
                         </router-link>
-                        
+
                         <div v-if="editMode" class="incident-actions flex-shrink-0 ms-2">
                             <button
                                 v-if="incident.active"
@@ -49,7 +60,7 @@
                         </div>
                     </div>
 
-                    <div class="incident-message mb-1 text-start" style="white-space: pre-wrap;">
+                    <div class="incident-message mb-1 text-start" style="white-space: pre-wrap">
                         {{ getDisplayMessage(incident) }}
                     </div>
 
@@ -65,7 +76,7 @@
                 + {{ $t("Show All") }} {{ incidents.length }} {{ $t("Incidents") }}
             </button>
         </div>
-        
+
         <div v-if="incidents.length > 3 && expanded" class="mt-3">
             <button class="btn btn-light w-100 border text-muted" @click="expanded = false">
                 - {{ $t("Collapse Incidents") }}
@@ -112,7 +123,7 @@ export default {
     methods: {
         getDisplayMessage(incident) {
             if (incident.updates && incident.updates.length > 0) {
-                const resolvedUpdate = incident.updates.find(u => u.status === 'resolved');
+                const resolvedUpdate = incident.updates.find((u) => u.status === "resolved");
                 if (resolvedUpdate) {
                     return resolvedUpdate.message;
                 }
@@ -124,14 +135,14 @@ export default {
         formatDateRange(incident) {
             const start = dayjs.utc(incident.createdDate).tz(this.timezone);
             const startFormat = start.format("MMM D, HH:mm");
-            
+
             if (incident.lastUpdatedDate && incident.createdDate !== incident.lastUpdatedDate) {
                 const end = dayjs.utc(incident.lastUpdatedDate).tz(this.timezone);
                 const endFormat = end.format("HH:mm");
                 return `${startFormat} - ${endFormat} (${this.timezone})`;
             }
             return `${startFormat} (${this.timezone})`;
-        }
+        },
     },
 };
 </script>

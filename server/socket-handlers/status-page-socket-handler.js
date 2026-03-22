@@ -405,7 +405,10 @@ module.exports.statusPageSocketHandler = (socket) => {
                 return;
             }
 
-            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [bean.incident_id, statusPageID]);
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [
+                bean.incident_id,
+                statusPageID,
+            ]);
             if (!incident) {
                 callback({
                     ok: false,
@@ -484,7 +487,10 @@ module.exports.statusPageSocketHandler = (socket) => {
             }
 
             // Verify incident belongs to this status page
-            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [bean.incident_id, statusPageID]);
+            let incident = await R.findOne("incident", " id = ? AND status_page_id = ? ", [
+                bean.incident_id,
+                statusPageID,
+            ]);
             if (!incident) {
                 callback({
                     ok: false,

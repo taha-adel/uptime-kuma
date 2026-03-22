@@ -320,12 +320,14 @@
                 />
 
                 <!-- Display mode for this incident -->
-                <div
-                    v-else
-                    class="shadow-box mb-4 p-4 incident"
-                    data-testid="incident"
-                >
-                    <h3 class="alert-heading text-center mb-0" :style="{ color: activeIncident.style === 'danger' ? '#e36209' : '#dbab09' }" data-testid="incident-title">{{ activeIncident.title }}</h3>
+                <div v-else class="shadow-box mb-4 p-4 incident" data-testid="incident">
+                    <h3
+                        class="alert-heading text-center mb-0"
+                        :style="{ color: activeIncident.style === 'danger' ? '#e36209' : '#dbab09' }"
+                        data-testid="incident-title"
+                    >
+                        {{ activeIncident.title }}
+                    </h3>
 
                     <!-- Incident Date -->
                     <div class="date mt-3">
@@ -356,7 +358,9 @@
                             :slug="slug"
                             :incident-id="activeIncident.id"
                             :updates="activeIncident.updates"
-                            @update-posted="(update, incident) => onIncidentUpdatePosted(activeIncident, update, incident)"
+                            @update-posted="
+                                (update, incident) => onIncidentUpdatePosted(activeIncident, update, incident)
+                            "
                         />
                     </div>
 
@@ -503,7 +507,11 @@
 
             <!-- Link to Incident History -->
             <div v-if="!isIncidentRelatedPage && pastIncidentCount > 0" class="text-center mt-4 mb-5">
-                <router-link :to="`/status/${slug}/incidents`" class="btn btn-outline-primary shadow-sm" style="border-radius: 50px; padding: 10px 30px;">
+                <router-link
+                    :to="`/status/${slug}/incidents`"
+                    class="btn btn-outline-primary shadow-sm"
+                    style="border-radius: 50px; padding: 10px 30px"
+                >
                     {{ $t("Incident History") }}
                 </router-link>
             </div>
@@ -519,23 +527,30 @@
 
                 <div class="past-incidents-content mt-4">
                     <!-- Pagination Controls -->
-                    <div v-if="historyMonths.length > 3" class="history-pagination d-flex justify-content-start align-items-center mb-4">
-                        <button class="history-nav-btn" :disabled="historyPageOffset >= maxHistoryPageOffset" @click="historyPageOffset++">
+                    <div
+                        v-if="historyMonths.length > 3"
+                        class="history-pagination d-flex justify-content-start align-items-center mb-4"
+                    >
+                        <button
+                            class="history-nav-btn"
+                            :disabled="historyPageOffset >= maxHistoryPageOffset"
+                            @click="historyPageOffset++"
+                        >
                             <font-awesome-icon icon="angle-left" />
                         </button>
                         <span class="history-nav-text">
                             {{ paginationRangeText }}
                         </span>
-                        <button class="history-nav-btn" :disabled="historyPageOffset === 0" @click="historyPageOffset--">
+                        <button
+                            class="history-nav-btn"
+                            :disabled="historyPageOffset === 0"
+                            @click="historyPageOffset--"
+                        >
                             <font-awesome-icon icon="angle-right" />
                         </button>
                     </div>
 
-                    <div
-                        v-for="group in visibleIncidentHistory"
-                        :key="group.month"
-                        class="incident-date-group mb-5"
-                    >
+                    <div v-for="group in visibleIncidentHistory" :key="group.month" class="incident-date-group mb-5">
                         <h3 class="incident-date-header border-bottom pb-2 mb-4">{{ group.month }}</h3>
                         <div class="incident-list-box">
                             <IncidentHistory
@@ -555,13 +570,24 @@
             <div v-if="isSingleIncidentPage" class="single-incident-page mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>{{ $t("Incident Details") }}</h2>
-                    <router-link :to="`/status/${slug}/incidents`" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <router-link
+                        :to="`/status/${slug}/incidents`"
+                        class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                    >
                         &larr; {{ $t("Back to History") }}
                     </router-link>
                 </div>
 
                 <div v-if="singleIncident !== null" class="shadow-box mb-4 p-4 incident" data-testid="incident">
-                    <h3 class="alert-heading text-center mb-0" :style="{ color: singleIncident.style === 'danger' ? '#e36209' : '#dbab09', fontWeight: 'bold' }">{{ singleIncident.title }}</h3>
+                    <h3
+                        class="alert-heading text-center mb-0"
+                        :style="{
+                            color: singleIncident.style === 'danger' ? '#e36209' : '#dbab09',
+                            fontWeight: 'bold',
+                        }"
+                    >
+                        {{ singleIncident.title }}
+                    </h3>
 
                     <!-- Incident Date -->
                     <div class="date mt-3 text-center text-muted">
@@ -586,7 +612,7 @@
                     </div>
                 </div>
                 <div v-else class="text-center py-5 text-muted shadow-box p-4">
-                    <font-awesome-icon icon="exclamation-circle" class="mb-3" style="font-size: 2rem;" />
+                    <font-awesome-icon icon="exclamation-circle" class="mb-3" style="font-size: 2rem" />
                     <h4>{{ $t("Incident not found.") }}</h4>
                 </div>
             </div>
@@ -936,30 +962,30 @@ export default {
         },
 
         isIncidentRelatedPage() {
-            return this.$route.path.includes('/incidents');
+            return this.$route.path.includes("/incidents");
         },
 
         isIncidentHistoryPage() {
-            return this.$route.path.endsWith('/incidents');
+            return this.$route.path.endsWith("/incidents");
         },
 
         isSingleIncidentPage() {
-            return this.$route.path.includes('/incidents/') && this.$route.params.id;
+            return this.$route.path.includes("/incidents/") && this.$route.params.id;
         },
 
         singleIncident() {
             if (!this.isSingleIncidentPage) {
                 return null;
             }
-            
+
             // Active incidents
-            let found = this.activeIncidents.find(i => i.id == this.$route.params.id);
+            let found = this.activeIncidents.find((i) => i.id == this.$route.params.id);
             if (found) {
                 return found;
             }
 
             // Incident history
-            return this.incidentHistory.find(i => i.id == this.$route.params.id);
+            return this.incidentHistory.find((i) => i.id == this.$route.params.id);
         },
 
         /**
@@ -974,7 +1000,7 @@ export default {
                     year: "numeric",
                     month: "long",
                 });
-                let group = groups.find(g => g.month === dateKey);
+                let group = groups.find((g) => g.month === dateKey);
                 if (!group) {
                     group = { month: dateKey, incidents: [] };
                     groups.push(group);
@@ -985,7 +1011,7 @@ export default {
         },
 
         historyMonths() {
-            return this.groupedIncidentHistory.map(g => g.month);
+            return this.groupedIncidentHistory.map((g) => g.month);
         },
 
         maxHistoryPageOffset() {
@@ -1003,7 +1029,7 @@ export default {
             }
             const first = this.visibleIncidentHistory[this.visibleIncidentHistory.length - 1].month;
             const last = this.visibleIncidentHistory[0].month;
-            
+
             if (first === last) {
                 return first;
             }
@@ -1662,12 +1688,12 @@ export default {
 
 .history-pagination {
     gap: 1rem;
-    
+
     .history-nav-text {
         color: var(--bs-secondary-color, #6c757d);
         font-size: 1rem;
     }
-    
+
     .history-nav-btn {
         background: transparent;
         border: none;
@@ -1675,12 +1701,12 @@ export default {
         cursor: pointer;
         padding: 5px 10px;
         transition: opacity 0.2s;
-        
+
         &:disabled {
             opacity: 0.3;
             cursor: not-allowed;
         }
-        
+
         &:not(:disabled):hover {
             opacity: 0.8;
             color: var(--bs-body-color);

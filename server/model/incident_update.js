@@ -1,7 +1,6 @@
 const { BeanModel } = require("redbean-node/dist/bean-model");
 
 class IncidentUpdate extends BeanModel {
-
     /**
      * Valid status values for incident updates
      * @type {string[]}

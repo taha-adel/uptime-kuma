@@ -11,11 +11,7 @@
         </div>
 
         <div v-else class="timeline">
-            <div
-                v-for="update in updates"
-                :key="update.id"
-                class="timeline-item"
-            >
+            <div v-for="update in updates" :key="update.id" class="timeline-item">
                 <div class="timeline-marker" :class="statusClass(update.status)"></div>
                 <div class="timeline-content">
                     <div class="d-flex justify-content-between align-items-start">

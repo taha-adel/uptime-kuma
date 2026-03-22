@@ -15,10 +15,18 @@
                         class="form-select form-select-sm"
                         data-testid="update-status-select"
                     >
-                        <option v-if="availableStatuses.includes('investigating')" value="investigating">{{ $t("Investigating") }}</option>
-                        <option v-if="availableStatuses.includes('identified')" value="identified">{{ $t("Identified") }}</option>
-                        <option v-if="availableStatuses.includes('monitoring')" value="monitoring">{{ $t("Monitoring") }}</option>
-                        <option v-if="availableStatuses.includes('resolved')" value="resolved">{{ $t("Resolved") }}</option>
+                        <option v-if="availableStatuses.includes('investigating')" value="investigating">
+                            {{ $t("Investigating") }}
+                        </option>
+                        <option v-if="availableStatuses.includes('identified')" value="identified">
+                            {{ $t("Identified") }}
+                        </option>
+                        <option v-if="availableStatuses.includes('monitoring')" value="monitoring">
+                            {{ $t("Monitoring") }}
+                        </option>
+                        <option v-if="availableStatuses.includes('resolved')" value="resolved">
+                            {{ $t("Resolved") }}
+                        </option>
                         <option v-if="availableStatuses.includes('update')" value="update">{{ $t("Update") }}</option>
                     </select>
                 </div>
@@ -84,21 +92,21 @@ export default {
         availableStatuses() {
             const order = ["investigating", "identified", "monitoring", "resolved"];
             let maxIndex = -1;
-            
+
             if (this.updates && this.updates.length > 0) {
-                this.updates.forEach(update => {
+                this.updates.forEach((update) => {
                     const index = order.indexOf(update.status);
                     if (index > maxIndex) {
                         maxIndex = index;
                     }
                 });
             }
-            
+
             // Return valid statuses (index > maxIndex) plus "update"
             const valid = order.filter((status, index) => index > maxIndex);
             valid.push("update");
             return valid;
-        }
+        },
     },
     watch: {
         availableStatuses: {
@@ -108,8 +116,8 @@ export default {
                 if (!newVal.includes(this.form.status)) {
                     this.form.status = newVal[0];
                 }
-            }
-        }
+            },
+        },
     },
     methods: {
         /**

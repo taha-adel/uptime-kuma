@@ -1,8 +1,5 @@
 <template>
-    <div
-        class="shadow-box mb-4 p-4 incident"
-        data-testid="incident-edit"
-    >
+    <div class="shadow-box mb-4 p-4 incident" data-testid="incident-edit">
         <div class="mb-3">
             <label class="form-label">{{ $t("Title") }}</label>
             <input
