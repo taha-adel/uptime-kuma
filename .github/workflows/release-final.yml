@@ -1,6 +1,9 @@
 name: Final Release
 
 on:
+  push:
+    paths:
+      - '.github/workflows/release-final.yml'
   workflow_dispatch:
     inputs:
       version:
