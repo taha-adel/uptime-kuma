@@ -33,7 +33,7 @@ export function getRepoNames() {
         // Split by comma
         return process.env.RELEASE_REPO_NAMES.split(",").map((name) => name.trim());
     }
-    return ["taha-adel/uptime-kuma", "ghcr.io/taha-adel/uptime-kuma"];
+    return ["taha443/uptime-kuma", "ghcr.io/taha-adel/uptime-kuma"];
 }
 
 /**
