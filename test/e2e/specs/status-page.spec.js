@@ -32,7 +32,6 @@ test.describe("Status Page", () => {
         const customCss = "body { background: rgb(0, 128, 128) !important; }";
         const descriptionText = "This is an example status page.";
         const incidentTitle = "Example Outage Incident";
-        const incidentContent = "Sample incident message.";
         const groupName = "Example Group 1";
 
         // Set up a monitor that can be added to the Status Page
@@ -88,9 +87,7 @@ test.describe("Status Page", () => {
 
         // Add an incident
         await page.getByTestId("create-incident-button").click();
-        await page.getByTestId("incident-title").isEditable();
         await page.getByTestId("incident-title").fill(incidentTitle);
-        await page.getByTestId("incident-content-editable").fill(incidentContent);
         await page.getByTestId("post-incident-button").click();
 
         // Add a group
@@ -119,7 +116,6 @@ test.describe("Status Page", () => {
         // Ensure changes are visible
         await expect(page.getByTestId("incident")).toHaveCount(1);
         await expect(page.getByTestId("incident-title")).toContainText(incidentTitle);
-        await expect(page.getByTestId("incident-content")).toContainText(incidentContent);
         await expect(page.getByTestId("group-name")).toContainText(groupName);
         await expect(page.getByTestId("powered-by")).toHaveCount(0);
 

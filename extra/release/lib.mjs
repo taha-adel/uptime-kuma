@@ -33,7 +33,7 @@ export function getRepoNames() {
         // Split by comma
         return process.env.RELEASE_REPO_NAMES.split(",").map((name) => name.trim());
     }
-    return ["louislam/uptime-kuma", "ghcr.io/louislam/uptime-kuma"];
+    return ["taha-adel/uptime-kuma", "ghcr.io/taha-adel/uptime-kuma"];
 }
 
 /**
@@ -100,7 +100,7 @@ export function buildImage(
  */
 export async function checkTagExists(repoNames, version) {
     // Skip if the tag is not on Docker Hub
-    // louislam/uptime-kuma
+    // taha-adel/uptime-kuma
     let dockerHubRepoNames = repoNames.filter((name) => {
         return name.split("/").length === 2;
     });
@@ -193,7 +193,7 @@ export function ver(version, identifier) {
 
 /**
  * Upload artifacts to GitHub
- * docker buildx build -f docker/dockerfile --platform linux/amd64 -t louislam/uptime-kuma:upload-artifact --build-arg VERSION --build-arg GITHUB_TOKEN --target upload-artifact . --progress plain
+ * docker buildx build -f docker/dockerfile --platform linux/amd64 -t taha-adel/uptime-kuma:upload-artifact --build-arg VERSION --build-arg GITHUB_TOKEN --target upload-artifact . --progress plain
  * @param {string} version Version
  * @param {string} githubToken GitHub token
  * @returns {void}
@@ -208,7 +208,7 @@ export function uploadArtifacts(version, githubToken) {
         "--platform",
         "linux/amd64",
         "-t",
-        "louislam/uptime-kuma:upload-artifact",
+        "taha-adel/uptime-kuma:upload-artifact",
         "--build-arg",
         `VERSION=${version}`,
         "--build-arg",
