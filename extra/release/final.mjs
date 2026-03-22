@@ -56,26 +56,7 @@ await createReleasePR(version, previousVersion, dryRun, branchName, githubRunId)
 buildDist();
 
 if (!dryRun) {
-    // Build slim image (rootless)
-    buildImage(
-        repoNames,
-        ["2-slim-rootless", ver(version, "slim-rootless")],
-        "rootless",
-        "BASE_IMAGE=taha-adel/uptime-kuma:base2-slim"
-    );
-
-    // Build full image (rootless)
-    buildImage(repoNames, ["2-rootless", ver(version, "rootless")], "rootless");
-
-    // Build slim image
-    buildImage(
-        repoNames,
-        ["next-slim", "2-slim", ver(version, "slim")],
-        "release",
-        "BASE_IMAGE=taha-adel/uptime-kuma:base2-slim"
-    );
-
-    // Build full image
+    // Build full image only (slim/rootless skipped - no base2-slim image on this fork)
     buildImage(repoNames, ["next", "2", version], "release");
 } else {
     console.log("Dry run mode - skipping image build and push.");
